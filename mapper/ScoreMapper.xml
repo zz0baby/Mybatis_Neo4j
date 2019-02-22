@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org/DTD Mapper 3.0" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="mapper.ScoreMapper">
+	
+	<!-- 结果集 -->
+	<resultMap id="agtNumMap" type="AgtNum">
+		<result property="PARTY_ID" column="PARTY_ID" javaType="java.lang.String" />
+		<result property="AGT_NUM" column="AGT_NUM" javaType="java.lang.String" />
+		<result property="score" column="score" javaType="java.lang.Integer" /> 
+	</resultMap>
+	<resultMap id="jjcMap" type="Jjc">
+		<result property="PARTY_ID" column="PARTY_ID" javaType="java.lang.String" />
+		<result property="AGT_NUM" column="AGT_NUM" javaType="java.lang.String" />
+		<result property="CURR_TERM_MAIN_ACCT_AGT_NUM" column="CURR_TERM_MAIN_ACCT_AGT_NUM" javaType="java.lang.String" />
+		<result property="score" column="score" javaType="java.lang.Integer" /> 
+	</resultMap>
+	<resultMap id="loanMap" type="Loan">
+		<result property="PARTY_ID" column="PARTY_ID" javaType="java.lang.String" />
+		<result property="LOAN_ACCT_NUM_AGT_NUM" column="LOAN_ACCT_NUM_AGT_NUM" javaType="java.lang.String" />
+		<result property="score" column="score" javaType="java.lang.Integer" /> 
+	</resultMap>
+	
+	<select id="countAgt" parameterType="String" resultMap="agtNumMap">
+		MATCH (n)-[p]-() where labels(n)=[#{label}]
+		RETURN n.EDW_CUST_NUM as PARTY_ID,n.AGT_NUM as AGT_NUM,count(p) as score order by count(p) DESC
+	</select>
+	<select id="countJjc" parameterType="String" resultMap="jjcMap">
+		MATCH (n)-[p]-() where labels(n)=[#{label}]
+		RETURN n.EDW_CUST_NUM as PARTY_ID,n.AGT_NUM as AGT_NUM,n.CURR_TERM_MAIN_ACCT_AGT_NUM as CURR_TERM_MAIN_ACCT_AGT_NUM,count(p) as score order by count(p) DESC
+	</select>
+	<select id="countLoan" parameterType="String" resultMap="loanMap">
+		MATCH (n)-[p]-() where labels(n)=[#{label}]
+		RETURN n.EDW_CUST_NUM as PARTY_ID,n.LOAN_ACCT_NUM_AGT_NUM as LOAN_ACCT_NUM_AGT_NUM,count(p) as score order by count(p) DESC
+	</select>
+	
+	<select id="betweenJjc" resultMap="jjcMap">
+		match(n:借记卡协议)
+		with collect(n) as users
+		call apoc.algo.betweenness([],users,'BOTH') yield node,score
+		set node.betweenness = score
+		return node.EDW_CUST_NUM as PARTY_ID,node.AGT_NUM as AGT_NUM,node.CURR_TERM_MAIN_ACCT_AGT_NUM as CURR_TERM_MAIN_ACCT_AGT_NUM,score order by score desc
+	</select>
+	<select id="betweenDjc" resultMap="agtNumMap">
+		match(n:贷记卡协议)
+		with collect(n) as users
+		call apoc.algo.betweenness([],users,'BOTH') yield node,score
+		set node.betweenness = score
+		return node.EDW_CUST_NUM as PARTY_ID,node.AGT_NUM as AGT_NUM,score order by score DESC
+	</select>
+	<select id="betweenAccount" resultMap="agtNumMap">
+		match(n:存款账户协议)
+		with collect(n) as users
+		call apoc.algo.betweenness([],users,'BOTH') yield node,score
+		set node.betweenness = score
+		return node.EDW_CUST_NUM as PARTY_ID,node.AGT_NUM as AGT_NUM,score order by score DESC
+	</select>	
+	<select id="betweenLoan" resultMap="loanMap">
+		match(n:贷款账户协议)
+		with collect(n) as users
+		call apoc.algo.betweenness([],users,'BOTH') yield node,score
+		set node.betweenness = score
+		return node.EDW_CUST_NUM as PARTY_ID,node.LOAN_ACCT_NUM_AGT_NUM as LOAN_ACCT_NUM_AGT_NUM,score order by score DESC
+	</select>
+</mapper>
